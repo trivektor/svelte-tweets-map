@@ -1,5 +1,5 @@
 <script>
-	import {bbox, centroid} from 'turf';
+	import {centroid} from 'turf';
 	import {onMount} from 'svelte';
 	import {map} from 'lodash';
 
@@ -16,6 +16,7 @@
 	let mostRecentId = '';
 	let statuses = [];
 	let locationMappings = {};
+	let interval;
 
 	async function fetchTweets() {
 		if (!searchQuery) return;
@@ -72,10 +73,6 @@
 						done(token);
 
 						mapInstance = new mapkit.Map('map');
-
-						setInterval(() => {
-							fetchTweets();
-						}, UPDATE_INTERVAL);
 					})
 					.catch((err) => {
 						console.error(err);
@@ -85,8 +82,18 @@
 		});
 	}
 
-	function setSearchQuery() {
+	async function submit() {
 		searchQuery = searchQueryInput;
+
+		if (interval) {
+			clearInterval(interval);
+		}
+
+		await fetchTweets();
+
+		interval = setInterval(() => {
+			fetchTweets();
+		}, UPDATE_INTERVAL);
 	}
 
 	function setSearchQueryInput(event) {
@@ -98,7 +105,7 @@
 
 <main>
 	<div id='query-form'>
-		<form on:submit|preventDefault={setSearchQuery}>
+		<form on:submit|preventDefault={submit}>
 			<input on:change={setSearchQueryInput} placeholder='Enter search query...' autofocus />
 		</form>
 	</div>
