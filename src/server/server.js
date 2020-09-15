@@ -49,8 +49,12 @@ apiRouter.get('/search', async (req, res) => {
     urlSearchParams.result_type = req.query.result_type;
   }
 
-  if (req.query.max_results) {
-    urlSearchParams.max_results = +req.query.max_results;
+  if (req.query.count) {
+    urlSearchParams.count = +req.query.count;
+  }
+
+  if (req.query.since_id) {
+    urlSearchParams.since_id = req.query.since_id;
   }
 
   const params = new URLSearchParams(urlSearchParams);
@@ -78,8 +82,6 @@ apiRouter.get('/search', async (req, res) => {
         key: process.env.GOOGLE_API_KEY,
       });
 
-      console.log({location});
-
       const result = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?${params}`
       );
@@ -87,10 +89,12 @@ apiRouter.get('/search', async (req, res) => {
       const {results} = json;
 
       if (!results || !results.length) return;
-      const {geometry} = results[0];
+      const {geometry, formatted_address} = results[0];
 
       if (isPlainObject(geometry.location)) {
-        locationMappings[id] = geometry.location;
+        console.log({id, user: user.screen_name, location});
+
+        locationMappings[id] = {...geometry.location, formatted_address};
       }
 
       return null

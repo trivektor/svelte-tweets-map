@@ -1,10 +1,12 @@
 <script>
-	import {point, bbox, center, featureCollection} from 'turf';
+	import {point, bbox, center, centroid, featureCollection} from 'turf';
 	import {onMount} from 'svelte';
+	import {map} from 'lodash';
 
-	let map;
+	let mapInstance;
 	let searchQuery = '';
 	let searchQueryInput = '';
+	let mostRecentId = '';
 	const previousAnnotations = [];
 	const seenTweets = {};
 	const CUSTOM_MARKER_OPTIONS = {
@@ -12,6 +14,7 @@
 			1: '/Twitter_Logo_Blue.png',
 		},
 	};
+	const UPDATE_INTERVAL = 2000;
 
 	async function fetchTweets() {
 		if (!searchQuery) return;
@@ -19,8 +22,13 @@
 		const params = new URLSearchParams({
 			q: searchQuery,
 			result_type: 'recent',
-			max_results: 100,
+			count: mostRecentId ? 100 : 10,
 		});
+
+		if (mostRecentId) {
+			params.set('since_id', mostRecentId);
+		}
+
 		const response = await fetch(`http://localhost:8080/api/search?${params}`);
 		const json = await response.json();
 		const statuses = json.statuses.filter(({id}) => !seenTweets[id]);
@@ -30,39 +38,45 @@
 			seenTweets[id] = true;
 		});
 
-		const annotations = statuses.map(({id, place, text}) => {
+		if (statuses.length) {
+			mostRecentId = Math.max(...map(statuses, "id"));
+		}
+
+		const annotations = statuses.map(({id, place, user, text}) => {
 			if (place) {
-				const coordinates = place.bounding_box.coordinates[0];
-				const features = featureCollection(coordinates.map((pair) => point(pair)));
-				const {geometry: {lat, lng}} = center(features);
+				console.log({id, user, place, text});
+				const {geometry: {coordinates: [lng, lat]}} = centroid(place.bounding_box);
 				const mapkitCoordinate = new mapkit.Coordinate(lat, lng);
 
-				return new mapkit.MarkerAnnotation(mapkitCoordinate, CUSTOM_MARKER_OPTIONS);
+				return new mapkit.MarkerAnnotation(mapkitCoordinate, {
+					...CUSTOM_MARKER_OPTIONS,
+					title: `@${user.screen_name}: ${text}`,
+				});
 			} else {
 				const geometryLocation = locationMappings[id];
 
 				if (geometryLocation) {
-					const {lat, lng} = geometryLocation;
+					const {lat, lng, formatted_address} = geometryLocation;
 					const mapkitCoordinate = new mapkit.Coordinate(lat, lng);
 
-					return new mapkit.MarkerAnnotation(mapkitCoordinate, CUSTOM_MARKER_OPTIONS);
+					return new mapkit.MarkerAnnotation(mapkitCoordinate, {
+						...CUSTOM_MARKER_OPTIONS,
+						title: `@${user.screen_name}: ${text}`,
+					});
 				}
 			}
 		}).filter(Boolean);
 
 		if (annotations.length) {
 			previousAnnotations.forEach((annotation) => {
-				map.removeAnnotation(annotation);
+				mapInstance.removeAnnotation(annotation);
 			});
 
 			previousAnnotations.push(...annotations);
 
-			console.log({statuses, annotations});
+			console.log({statuses, annotations, seenTweets});
 
-			map.showItems(annotations, {
-				animate: true,
-				minimumSpan: new mapkit.CoordinateSpan(30, 30),
-			});
+			mapInstance.showItems(annotations, {animate: true});
 		}
 	}
 
@@ -74,13 +88,13 @@
 					.then((token) => {
 						done(token);
 
-						map = new mapkit.Map('map');
+						mapInstance = new mapkit.Map('map');
 
 						fetchTweets();
 
 						setInterval(() => {
 							fetchTweets();
-						}, 2000);
+						}, UPDATE_INTERVAL);
 					})
 					.catch((err) => {
 						console.error(err);
@@ -108,14 +122,35 @@
 	}
 
 	#map {
-		height: calc(100vh - 70px);
+		height: 100vh;
+	}
+
+	#query-form {
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		right: 10px;
+		z-index: 100;
+	}
+
+	#query-form input {
+		border-radius: 4px;
+		padding: 10px;
+		display: block !important;
+		width: 300px;
+		border: 1px solid #bbb;
+	}
+
+	#query-form input:focus {
+		outline: none;
+		box-shadow: none;
 	}
 </style>
 
 <main>
-	<div>
+	<div id='query-form'>
 		<form on:submit|preventDefault={setSearchQuery}>
-			<input style='width: 100%' on:change={setSearchQueryInput} placeholder='Enter search query' />
+			<input on:change={setSearchQueryInput} placeholder='Enter search query...' autofocus />
 		</form>
 	</div>
 	<div id='map'></div>
