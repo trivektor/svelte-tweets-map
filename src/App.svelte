@@ -10,7 +10,10 @@
 	};
 	const mapkit = window.mapkit;
 	const UPDATE_INTERVAL = 5000;
-	const MINIMUM_SPAN = new mapkit.CoordinateSpan(30, 30);
+	const MINIMUM_SPAN = new mapkit.CoordinateSpan(50, 50);
+	const US_CENTER = new mapkit.Coordinate(31.51073, -96.4247);
+	const US_REGION = new mapkit.CoordinateRegion(US_CENTER, MINIMUM_SPAN);
+	const RESULT_TYPE = 'recent';
 	let mapInstance;
 	let searchQuery = '';
 	let searchQueryInput = '';
@@ -24,7 +27,7 @@
 
 		const params = new URLSearchParams({
 			q: searchQuery,
-			result_type: 'recent',
+			result_type: RESULT_TYPE,
 			count: 100,
 			since_id: mostRecentId,
 		});
@@ -59,9 +62,8 @@
 			mapInstance.removeAnnotation(annotation);
 		});
 
-		mapInstance.showItems(annotations, {
-			animate: true,
-			minimumSpan: MINIMUM_SPAN,
+		annotations.forEach((annotation) => {
+			mapInstance.addAnnotation(annotation);
 		});
 	}
 
@@ -73,7 +75,10 @@
 					.then((token) => {
 						done(token);
 
-						mapInstance = new mapkit.Map('map');
+						mapInstance = new mapkit.Map('map', {
+							center: US_CENTER,
+							region: US_REGION,
+						});
 					})
 					.catch((err) => {
 						console.error(err);

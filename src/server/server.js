@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 8080;
 const fetch = require('node-fetch');
 const jwt = require('jsonwebtoken');
 const fs = require('fs')
-const {isPlainObject} = require('lodash');
+const {isPlainObject, pick} = require('lodash');
 
 apiRouter.get('/jwt', (req, res) => {
   const payload = {
@@ -37,25 +37,9 @@ apiRouter.get('/jwt', (req, res) => {
 });
 
 apiRouter.get('/search', async (req, res) => {
-  const urlSearchParams = {
-    q: req.query.q,
-  };
-
-  if (req.query.geocode) {
-    urlSearchParams.geocode = req.query.geocode;
-  }
-
-  if (req.query.result_type) {
-    urlSearchParams.result_type = req.query.result_type;
-  }
-
-  if (req.query.count) {
-    urlSearchParams.count = +req.query.count;
-  }
-
-  if (req.query.since_id) {
-    urlSearchParams.since_id = req.query.since_id;
-  }
+  const urlSearchParams = pick(req.query, [
+    'q', 'geocode', 'result_type', 'count', 'since_id', 'lang',
+  ]);
 
   const params = new URLSearchParams(urlSearchParams);
   const url = `https://api.twitter.com/1.1/search/tweets.json?${params}`;
