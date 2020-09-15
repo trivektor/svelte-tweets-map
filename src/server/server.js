@@ -59,6 +59,7 @@ apiRouter.get('/search', async (req, res) => {
 
   const params = new URLSearchParams(urlSearchParams);
   const url = `https://api.twitter.com/1.1/search/tweets.json?${params}`;
+  console.log(url);
   const response = await fetch(
     url,
     {
@@ -68,7 +69,9 @@ apiRouter.get('/search', async (req, res) => {
     },
   );
   const json = await response.json();
-  const statuses = json.statuses || [];
+  const statuses = (json.statuses || []).filter(({id}) => {
+    return req.query.since_id ? id > req.query.since_id : true;
+  });
   const locationMappings = {};
 
   await Promise.all(
@@ -92,7 +95,7 @@ apiRouter.get('/search', async (req, res) => {
       const {geometry, formatted_address} = results[0];
 
       if (isPlainObject(geometry.location)) {
-        console.log({id, user: user.screen_name, location});
+        //console.log({id, user: user.screen_name, location});
 
         locationMappings[id] = {...geometry.location, formatted_address};
       }
