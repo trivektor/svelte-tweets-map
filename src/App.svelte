@@ -8,6 +8,7 @@
 			1: '/Twitter_Logo_Blue.png',
 		},
 	};
+	const mapkit = window.mapkit;
 	const UPDATE_INTERVAL = 5000;
 	const MINIMUM_SPAN = new mapkit.CoordinateSpan(30, 30);
 	let mapInstance;
@@ -36,7 +37,7 @@
 		locationMappings = json.locationMappings;
 		mostRecentId = Math.max(...map(statuses, "id"));
 
-		const annotations = statuses.map(({id, place, user, text, formatted_address}) => {
+		const annotations = statuses.map(({id, place}) => {
 			if (place) {
 				const {geometry: {coordinates: [lng, lat]}} = centroid(place.bounding_box);
 
@@ -45,7 +46,7 @@
 					CUSTOM_MARKER_OPTIONS
 				);
 			} else if (locationMappings[id]) {
-				const {lat, lng, formatted_address} = locationMappings[id];
+				const {lat, lng} = locationMappings[id];
 
 				return new mapkit.MarkerAnnotation(
 					new mapkit.Coordinate(lat, lng),
@@ -106,7 +107,7 @@
 <main>
 	<div id='query-form'>
 		<form on:submit|preventDefault={submit}>
-			<input on:change={setSearchQueryInput} placeholder='Enter search query...' autofocus />
+			<input on:change={setSearchQueryInput} placeholder='Enter search query...' />
 		</form>
 	</div>
 	<div id='map'></div>

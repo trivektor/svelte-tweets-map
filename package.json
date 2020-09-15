@@ -4,12 +4,19 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "start": "sirv public"
+    "start": "sirv public",
+    "lint": "eslint . --ext .js,.svelte --fix"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^14.0.0",
     "@rollup/plugin-node-resolve": "^8.0.0",
     "@rollup/plugin-replace": "^2.3.3",
+    "eslint": "^7.9.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "eslint-plugin-svelte3": "^2.7.3",
     "rollup": "^2.3.4",
     "rollup-plugin-livereload": "^2.0.0",
     "rollup-plugin-svelte": "^6.0.0",
